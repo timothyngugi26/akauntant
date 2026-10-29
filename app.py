@@ -3,10 +3,10 @@ import re
 import time
 from dotenv import load_dotenv
 from google import genai
-from google.genai import types  # Import types for generation config
 import streamlit as st
 
 # ---------- Environment & Configuration ----------
+# Load local .env file (this will do nothing in the cloud, which is fine)
 load_dotenv()
 
 st.set_page_config(page_title="Duka Cash Flow Check", page_icon="📊", layout="centered")
@@ -22,9 +22,7 @@ if not api_key:
 
 # Initialize Gemini Client
 client = genai.Client(api_key=api_key.strip())
-
-# --- CRITICAL CHANGE 1: Updated Model Name ---
-MODEL_NAME = "gemini-3.8-flash"
+MODEL_NAME = "gemini-3.8-flash" 
 
 # ---------- M-Pesa SMS Parser ----------
 PATTERNS = {
@@ -160,13 +158,10 @@ Keep the total response under 80 words."""
 
         for attempt in range(max_retries):
             try:
-                # --- CRITICAL CHANGE 2: Added generation_config with thinking_level ---
+                # Standard generation call (no custom unsupported parameters)
                 response = client.models.generate_content(
                     model=MODEL_NAME,
                     contents=prompt,
-                    config=types.GenerateContentConfig(
-                        thinking_level="medium" # Use 'low', 'medium', or 'high'. 'minimal' is NOT supported.
-                    )
                 )
                 response_text = response.text
                 break
