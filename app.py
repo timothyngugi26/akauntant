@@ -3,31 +3,27 @@ import re
 import time
 from dotenv import load_dotenv
 from google import genai
-from google.genai import errors
 import streamlit as st
 
 # ---------- Environment & Configuration ----------
+# Load local .env file (this will do nothing in the cloud, which is fine)
 load_dotenv()
 
 st.set_page_config(page_title="Duka Cash Flow Check", page_icon="📊", layout="centered")
 st.title("📊 Duka Cash Flow Health Check")
 st.caption("Paste M-Pesa SMS below. Get a simple monthly summary + 3 actionable tips.")
 
-# Check for API key in environment or Streamlit secrets
-api_key = os.environ.get("GEMINI_API_KEY")
-if not api_key:
-    try:
-        api_key = st.secrets.get("GEMINI_API_KEY")
-    except Exception:
-        api_key = None
+# Check for API key in Streamlit secrets first, then environment variables
+api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 
 if not api_key:
-    st.error("⚠️ `GEMINI_API_KEY` not found. Please add it to your `.env` file or Streamlit Secrets.")
+    st.error("⚠️ `GEMINI_API_KEY` not found. Please add it to your `.env` file locally, or Streamlit Secrets on the cloud.")
     st.stop()
 
 # Initialize Gemini Client
 client = genai.Client(api_key=api_key.strip())
-MODEL_NAME = "gemini-3.8-flash"
+# Updated to a valid model name
+MODEL_NAME = "gemini-2.5-flash" 
 
 # ---------- M-Pesa SMS Parser ----------
 PATTERNS = {
@@ -157,7 +153,7 @@ Do not use bullet points. Number them 1, 2, 3.
 If net cash flow is negative, the first recommendation must directly address it.
 Keep the total response under 80 words."""
 
-    with st.spinner("Analyzing with Gemini 3.8 Flash..."):
+    with st.spinner("Analyzing with Gemini..."):
         max_retries = 3
         response_text = None
 
