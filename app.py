@@ -3,10 +3,10 @@ import re
 import time
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types  # Import types for generation config
 import streamlit as st
 
 # ---------- Environment & Configuration ----------
-# Load local .env file (this will do nothing in the cloud, which is fine)
 load_dotenv()
 
 st.set_page_config(page_title="Duka Cash Flow Check", page_icon="📊", layout="centered")
@@ -22,8 +22,9 @@ if not api_key:
 
 # Initialize Gemini Client
 client = genai.Client(api_key=api_key.strip())
-# Updated to a valid model name
-MODEL_NAME = "gemini-2.5-flash" 
+
+# --- CRITICAL CHANGE 1: Updated Model Name ---
+MODEL_NAME = "gemini-3.8-flash"
 
 # ---------- M-Pesa SMS Parser ----------
 PATTERNS = {
@@ -130,7 +131,7 @@ if st.button("Analyze Cash Flow", type="primary"):
     }
     st.table(expense_data)
 
-    # ---------- Gemini Call (with Retry for 503 Spikes) ----------
+    # ---------- Gemini Call ----------
     st.subheader("💡 3 Actionable Recommendations")
 
     prompt = f"""You are a friendly financial advisor for a small duka (shop) owner in Nairobi.
@@ -153,21 +154,24 @@ Do not use bullet points. Number them 1, 2, 3.
 If net cash flow is negative, the first recommendation must directly address it.
 Keep the total response under 80 words."""
 
-    with st.spinner("Analyzing with Gemini..."):
+    with st.spinner("Analyzing with Gemini 3.8 Flash..."):
         max_retries = 3
         response_text = None
 
         for attempt in range(max_retries):
             try:
+                # --- CRITICAL CHANGE 2: Added generation_config with thinking_level ---
                 response = client.models.generate_content(
                     model=MODEL_NAME,
                     contents=prompt,
+                    config=types.GenerateContentConfig(
+                        thinking_level="medium" # Use 'low', 'medium', or 'high'. 'minimal' is NOT supported.
+                    )
                 )
                 response_text = response.text
                 break
             except Exception as e:
                 err_msg = str(e)
-                # Handle temporary high-demand (503) or rate-limit (429) spikes
                 if ("503" in err_msg or "UNAVAILABLE" in err_msg or "429" in err_msg) and attempt < max_retries - 1:
                     wait_time = (attempt + 1) * 3
                     time.sleep(wait_time)
